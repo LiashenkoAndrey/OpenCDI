@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuite tests="3" failures="0" name="cdi.DIContainerTest" time="0.104" errors="0" skipped="0">
+<testsuite tests="3" failures="0" name="cdi.DIContainerTest" time="0.088" errors="0" skipped="0">
   <properties>
     <property name="java.runtime.name" value="Java(TM) SE Runtime Environment"/>
     <property name="java.vm.version" value="17.0.6+9-LTS-190"/>
@@ -43,7 +43,7 @@
     <property name="java.class.path" value="C:\Program Files\Maven\boot\plexus-classworlds-2.6.0.jar"/>
     <property name="java.vm.specification.version" value="17"/>
     <property name="sun.arch.data.model" value="64"/>
-    <property name="sun.java.command" value="org.codehaus.plexus.classworlds.launcher.Launcher package"/>
+    <property name="sun.java.command" value="org.codehaus.plexus.classworlds.launcher.Launcher clean package"/>
     <property name="java.home" value="C:\Program Files\Java\jdk-17"/>
     <property name="user.language" value="en"/>
     <property name="java.specification.vendor" value="Oracle Corporation"/>
@@ -61,7 +61,7 @@
     <property name="sun.stdout.encoding" value="cp866"/>
     <property name="sun.cpu.isalist" value="amd64"/>
   </properties>
-  <testcase classname="cdi.DIContainerTest" name="dependencyInjectionTest" time="0.097"/>
-  <testcase classname="cdi.DIContainerTest" name="loadPrototypeBeanTest" time="0.003"/>
-  <testcase classname="cdi.DIContainerTest" name="loadPrototypeBean" time="0.004"/>
+  <testcase classname="cdi.DIContainerTest" name="dependencyInjectionTest" time="0.082"/>
+  <testcase classname="cdi.DIContainerTest" name="loadPrototypeBeanTest" time="0.004"/>
+  <testcase classname="cdi.DIContainerTest" name="loadPrototypeBean" time="0.002"/>
 </testsuite>

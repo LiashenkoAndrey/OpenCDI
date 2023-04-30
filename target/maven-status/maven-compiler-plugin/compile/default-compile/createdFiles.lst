@@ -1,0 +1,7 @@
+org\open\cdi\exceptions\NoSuchBeanException.class
+org\open\cdi\BeanManager.class
+org\open\cdi\annotations\BeanScope.class
+org\open\cdi\annotations\DIBean.class
+org\open\cdi\DIContainer.class
+org\open\cdi\DIClassLoader.class
+org\open\cdi\annotations\InjectBean.class

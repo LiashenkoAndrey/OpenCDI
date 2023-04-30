@@ -1,0 +1,6 @@
+cdi\util\Controller.class
+cdi\util\SingeltonPerson.class
+cdi\util\Address.class
+cdi\util\Person.class
+cdi\DIContainerTest.class
+cdi\util\UserService.class
