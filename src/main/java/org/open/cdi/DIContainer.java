@@ -6,7 +6,6 @@ import org.open.cdi.annotations.InjectBean;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -20,15 +19,15 @@ import static org.open.cdi.DIClassLoader.findAllClassesUsingClassLoader;
  */
 public class DIContainer {
     private static final Logger logger = Logger.getLogger(DIContainer.class.getName());
-    public static final Map<String, Object> singletonBeans = new HashMap<>();
-    public static final Map<String, Class<?>> prototypeBeans = new HashMap<>();
+    private final Map<String, Object> singletonBeans = new HashMap<>();
+    private final Map<String, Class<?>> prototypeBeans = new HashMap<>();
 
 
     /**
      * finds classes annotated {@link DIBean} in specified packages and loads them in the singleton ot prototype context
      * @param packages packages for loading beans
      */
-    public static void init(String... packages) {
+    public void loadFromPackages(String... packages) {
         for (String pkg : packages) {
             logger.log(Level.INFO, "Loading beans from packages: " + Arrays.toString(packages));
             loadAll(findAllClassesUsingClassLoader(pkg));
@@ -40,7 +39,7 @@ public class DIContainer {
      * Loads classes annotated {@link DIBean}
      * @param objects objects for loading in container
      */
-    public static void loadAll(Object... objects) {
+    public void loadAll(Object... objects) {
         logger.log(Level.INFO, objects.length +" beans were found");
         for (Object obj : objects) {
             Class<?> objClass = obj.getClass();
@@ -62,7 +61,7 @@ public class DIContainer {
         }
     }
 
-    public static void loadWithName(Object obj, String beanName) {
+    public void loadWithName(Object obj, String beanName) {
         logger.log(Level.INFO, "Load single object: " + obj.getClass() +", with name" + beanName);
         singletonBeans.put(beanName, obj);
     }
@@ -72,7 +71,7 @@ public class DIContainer {
      * Finds fields annotated with {@link InjectBean} and injects appropriate bean by name specified in annotation
      * If there are no appropriate bean injects {@code null}
      */
-    private static void injectDependencies(Object... objects) {
+    private void init(Object... objects) {
         logger.log(Level.INFO, "injectDependencies: " + Arrays.toString(objects));
         try {
             for (Object obj : objects) {
@@ -95,9 +94,9 @@ public class DIContainer {
     /**
      * injects dependencies for both singleton and prototype beans
      */
-    public static void injectDependencies() {
-        injectDependencies(prototypeBeans.values().toArray());
-        injectDependencies(singletonBeans.values().toArray());
+    public void init() {
+        init(prototypeBeans.values().toArray());
+        init(singletonBeans.values().toArray());
     }
 
 
@@ -106,7 +105,7 @@ public class DIContainer {
      * @param beanName bean's name
      * @return a bean wrapped on nullable {@link Optional}
      */
-    public static Object find(String beanName) {
+    public Object find(String beanName) {
         Object bean = singletonBeans.get(beanName);
         if (bean == null) {
             Class<?> clazz = prototypeBeans.get(beanName);
@@ -116,10 +115,10 @@ public class DIContainer {
         return bean;
     }
 
-    private static Object createInstance(Class<?> clazz) {
+    private Object createInstance(Class<?> clazz) {
         try {
             Object o = clazz.getConstructor().newInstance();
-            injectDependencies(o);
+            init(o);
             return o;
         } catch (InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException e) {
             throw new RuntimeException(e);
@@ -129,7 +128,7 @@ public class DIContainer {
     /**
      * Clears all beans from context
      */
-    public static void clearContext() {
+    public void clearContext() {
         logger.log(Level.INFO, "Clear context!");
         prototypeBeans.clear();
         singletonBeans.clear();
@@ -140,12 +139,12 @@ public class DIContainer {
      * returns size both singleton and prototype beans
      * @return size both singleton and prototype beans
      */
-    public static int size() {
+    public int size() {
         return singletonBeans.size() + prototypeBeans.size();
     }
 
 
-    public static String getTypeFromPath(String path) {
+    private String getTypeFromPath(String path) {
         String[] arr = path.split("\\.");
         return arr[arr.length-1];
     }
