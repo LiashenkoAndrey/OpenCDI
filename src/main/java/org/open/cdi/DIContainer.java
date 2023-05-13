@@ -3,12 +3,13 @@ package org.open.cdi;
 import org.open.cdi.annotations.BeanScope;
 import org.open.cdi.annotations.DIBean;
 import org.open.cdi.annotations.InjectBean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import static org.open.cdi.DIClassLoader.findAllClassesUsingClassLoader;
 
@@ -18,7 +19,7 @@ import static org.open.cdi.DIClassLoader.findAllClassesUsingClassLoader;
  * Util annotations package {@link module.telegram_utils.annotations}
  */
 public class DIContainer {
-    private static final Logger logger = Logger.getLogger(DIContainer.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(DIContainer.class);
     private final Map<String, Object> singletonBeans = new HashMap<>();
     private final Map<String, Class<?>> prototypeBeans = new HashMap<>();
 
@@ -29,7 +30,7 @@ public class DIContainer {
      */
     public void loadFromPackages(String... packages) {
         for (String pkg : packages) {
-            logger.log(Level.INFO, "Loading beans from packages: " + Arrays.toString(packages));
+            logger.info("Loading beans from packages: " + Arrays.toString(packages));
             loadAll(findAllClassesUsingClassLoader(pkg));
         }
     }
@@ -40,7 +41,7 @@ public class DIContainer {
      * @param objects objects for loading in container
      */
     public void loadAll(Object... objects) {
-        logger.log(Level.INFO, objects.length +" beans were found");
+        logger.info(objects.length +" beans were found");
         for (Object obj : objects) {
             Class<?> objClass = obj.getClass();
             String className = getTypeFromPath(obj.getClass().getName());
@@ -62,7 +63,7 @@ public class DIContainer {
     }
 
     public void loadWithName(Object obj, String beanName) {
-        logger.log(Level.INFO, "Load single object: " + obj.getClass() +", with name" + beanName);
+        logger.info("Load single object: " + obj.getClass() +", with name" + beanName);
         singletonBeans.put(beanName, obj);
     }
 
@@ -72,7 +73,7 @@ public class DIContainer {
      * If there are no appropriate bean injects {@code null}
      */
     private void init(Object... objects) {
-        logger.log(Level.INFO, "injectDependencies: " + Arrays.toString(objects));
+        logger.info("injectDependencies: " + Arrays.toString(objects));
         try {
             for (Object obj : objects) {
                 Class clazz = obj.getClass();
@@ -111,7 +112,7 @@ public class DIContainer {
             Class<?> clazz = prototypeBeans.get(beanName);
             if (clazz != null) bean = createInstance(clazz);
         }
-        logger.log(Level.INFO, "Try to find bean with name \"" + beanName+"\": " + (bean != null) );
+        logger.info("Try to find bean with name \"" + beanName+"\": " + (bean != null) );
         return bean;
     }
 
@@ -129,7 +130,7 @@ public class DIContainer {
      * Clears all beans from context
      */
     public void clearContext() {
-        logger.log(Level.INFO, "Clear context!");
+        logger.info("Clear context!");
         prototypeBeans.clear();
         singletonBeans.clear();
     }

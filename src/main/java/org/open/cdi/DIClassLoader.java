@@ -1,6 +1,8 @@
 package org.open.cdi;
 
 import org.open.cdi.annotations.DIBean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -8,14 +10,13 @@ import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Objects;
-import java.util.logging.Logger;
 
 /**
  * Util class for {@link DIContainer} dependency injection container
  */
 public class DIClassLoader {
 
-    private static final Logger logger = Logger.getLogger(DIClassLoader.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(DIContainer.class);
 
     /**
      * Loads all classes annotated {@link DIBean} form specified package
@@ -50,7 +51,7 @@ public class DIClassLoader {
             return Class.forName(packageName + "."
                     + className.substring(0, className.lastIndexOf('.'))).getDeclaredConstructor().newInstance();
         } catch (ClassNotFoundException e) {
-            logger.warning( "Class with name: " +className +" in package: "+ packageName+" not found!");
+            logger.error( "Class with name: " +className +" in package: "+ packageName+" not found!");
         } catch (InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException e) {
             throw new RuntimeException(e);
         }
