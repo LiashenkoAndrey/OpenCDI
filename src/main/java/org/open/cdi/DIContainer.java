@@ -6,17 +6,16 @@ import org.open.cdi.annotations.InjectBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
-import java.util.logging.Level;
 
 import static org.open.cdi.DIClassLoader.findAllClassesUsingClassLoader;
 
 
 /**
  * Custom dependency injection container witch saves objects in {@link HashMap}
- * Util annotations package {@link module.telegram_utils.annotations}
  */
 public class DIContainer {
     private static final Logger logger = LoggerFactory.getLogger(DIContainer.class);
@@ -44,7 +43,7 @@ public class DIContainer {
         logger.info(objects.length +" beans were found");
         for (Object obj : objects) {
             Class<?> objClass = obj.getClass();
-            String className = getTypeFromPath(obj.getClass().getName());
+            String className = parseClassNameFromClassToString(obj.getClass().getName());
             DIBean annotation = objClass.getDeclaredAnnotation(DIBean.class);
             if (annotation == null) singletonBeans.put(className, obj);
             else {
@@ -63,7 +62,9 @@ public class DIContainer {
     }
 
     public void loadWithName(Object obj, String beanName) {
-        logger.info("Load single object: " + obj.getClass() +", with name" + beanName);
+        if (obj == null || beanName == null) throw new IllegalArgumentException("Arguments can't be null");
+        else if (beanName.trim().length() == 0) throw new IllegalArgumentException("Argument 'beanName' is empty string");
+        logger.info("Load single object: " + obj.getClass() +", with name " + beanName);
         singletonBeans.put(beanName, obj);
     }
 
@@ -72,17 +73,20 @@ public class DIContainer {
      * Finds fields annotated with {@link InjectBean} and injects appropriate bean by name specified in annotation
      * If there are no appropriate bean injects {@code null}
      */
-    private void init(Object... objects) {
-        logger.info("injectDependencies: " + Arrays.toString(objects));
+    private void injectDependencies(Object... objects) {
         try {
+
             for (Object obj : objects) {
-                Class clazz = obj.getClass();
-                Field[] fields = clazz.getDeclaredFields();
-                for (Field field : fields) {
-                    InjectBean val = field.getAnnotation(InjectBean.class);
+                Class<?> clazz = obj.getClass();
+                Set<Field> fieldsSet = new HashSet<>();
+
+                fieldsSet.addAll(Arrays.asList(clazz.getFields()));
+                fieldsSet.addAll(Arrays.asList(clazz.getDeclaredFields()));
+                for (Field field : fieldsSet.toArray(new Field[] {})) {
+                    InjectBean val = getDIAnnotation(field);
                     if (val != null) {
                         field.setAccessible(true);
-                        if (val.value().equals("")) field.set(obj, find(getTypeFromPath(field.getType().getTypeName())));
+                        if (val.value().equals("")) field.set(obj, find(parseClassNameFromClassToString(field.getType().getTypeName())));
                         else field.set(obj, find(val.value()));
                     }
                 }
@@ -92,12 +96,23 @@ public class DIContainer {
         }
     }
 
+    private static InjectBean getDIAnnotation(Field field) {
+        Annotation[] annotations = field.getAnnotations();
+        for (Annotation a : annotations) {
+            Class<?> type = a.annotationType();
+            if (type.getName().equals(InjectBean.class.getName())) return (InjectBean) a;
+        }
+        return null;
+    }
+
+
     /**
      * injects dependencies for both singleton and prototype beans
      */
     public void init() {
-        init(prototypeBeans.values().toArray());
-        init(singletonBeans.values().toArray());
+        injectDependencies(prototypeBeans.values().toArray());
+        injectDependencies(singletonBeans.values().toArray());
+        logger.info("Initialization successful");
     }
 
 
@@ -107,19 +122,31 @@ public class DIContainer {
      * @return a bean wrapped on nullable {@link Optional}
      */
     public Object find(String beanName) {
+        if (beanName == null) throw new IllegalArgumentException("Argument is null");
+        else if (beanName.trim().length() == 0) throw new IllegalArgumentException("Argument is empty string");
         Object bean = singletonBeans.get(beanName);
         if (bean == null) {
             Class<?> clazz = prototypeBeans.get(beanName);
-            if (clazz != null) bean = createInstance(clazz);
+            if (clazz != null) {
+                bean = createInstance(clazz);
+                injectDependencies(bean);
+            }
         }
-        logger.info("Try to find bean with name \"" + beanName+"\": " + (bean != null) );
+        logger.info("Finding a bean with name \"" + beanName+"\": " + (bean != null) );
         return bean;
     }
 
+
+    private boolean hasBeanWithName(String beanName) {
+        return find(beanName) != null;
+    }
+
     private Object createInstance(Class<?> clazz) {
+        System.out.println(clazz);
+        if (clazz == null) throw new IllegalArgumentException("Argument is not present!");
         try {
             Object o = clazz.getConstructor().newInstance();
-            init(o);
+            injectDependencies(o);
             return o;
         } catch (InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException e) {
             throw new RuntimeException(e);
@@ -140,12 +167,16 @@ public class DIContainer {
      * returns size both singleton and prototype beans
      * @return size both singleton and prototype beans
      */
-    public int size() {
+    public int containerSize() {
         return singletonBeans.size() + prototypeBeans.size();
     }
 
+    public boolean containerIsEmpty() {
+        return containerSize() == 0;
+    }
 
-    private String getTypeFromPath(String path) {
+
+    public static String parseClassNameFromClassToString(String path) {
         String[] arr = path.split("\\.");
         return arr[arr.length-1];
     }

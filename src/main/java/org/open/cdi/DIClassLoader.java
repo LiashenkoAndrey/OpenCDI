@@ -1,6 +1,7 @@
 package org.open.cdi;
 
 import org.open.cdi.annotations.DIBean;
+import org.open.cdi.exceptions.ClassLoadingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,10 +33,19 @@ public class DIClassLoader {
 
         List<Object> list = reader.lines()
                 .filter(line -> line.endsWith(".class"))
-                .map(line -> getObjectOfClass(line, packageName))
+                .map(line -> getClassesFromPackage(line, packageName))
                 .filter(Objects::nonNull)
-                .filter((clazz) -> clazz.getClass().getAnnotation(DIBean.class) != null)
+                .filter((clazz) -> clazz.getAnnotation(DIBean.class) != null)
+                .map(v -> {
+                    try {
+                        return  v.getDeclaredConstructor().newInstance();
+                    } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
+                             NoSuchMethodException e) {
+                        throw new ClassLoadingException(e);
+                    }
+                })
                 .toList();
+
         return list.toArray(new Object[]{});
     }
 
@@ -46,14 +56,12 @@ public class DIClassLoader {
      * @param packageName package name
      * @return an instance of specified class
      */
-    private static Object getObjectOfClass(String className, String packageName) {
+    private static Class getClassesFromPackage(String className, String packageName) {
         try {
             return Class.forName(packageName + "."
-                    + className.substring(0, className.lastIndexOf('.'))).getDeclaredConstructor().newInstance();
+                    + className.substring(0, className.lastIndexOf('.')));
         } catch (ClassNotFoundException e) {
             logger.error( "Class with name: " +className +" in package: "+ packageName+" not found!");
-        } catch (InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException e) {
-            throw new RuntimeException(e);
         }
         return null;
     }

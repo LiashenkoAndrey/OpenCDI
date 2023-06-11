@@ -1,15 +1,17 @@
 package cdi.util;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.open.cdi.annotations.BeanScope;
 import org.open.cdi.annotations.DIBean;
 
 @NoArgsConstructor
 @Setter
 @Getter
-@DIBean(scope = BeanScope.PROTOTYPE)
+@DIBean
+@AllArgsConstructor
+@EqualsAndHashCode
 public class Address {
+
+
     private String address;
 }
