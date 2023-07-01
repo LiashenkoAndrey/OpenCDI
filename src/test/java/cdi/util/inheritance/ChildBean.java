@@ -9,10 +9,10 @@ import org.open.cdi.annotations.DIBean;
 @Getter
 @Setter
 @NoArgsConstructor
-public class ChildBean extends ParentBean {
+public  class ChildBean extends ParentBean {
 
-    public int i = 1;
-    public int i1 = 2;
-    private int i3 = 3;
+//    public int i = 1;
+//    public int i1 = 2;
+//    private int i3 = 3;
 
 }

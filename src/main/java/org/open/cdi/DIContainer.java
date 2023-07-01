@@ -3,15 +3,18 @@ package org.open.cdi;
 import org.open.cdi.annotations.BeanScope;
 import org.open.cdi.annotations.DIBean;
 import org.open.cdi.annotations.InjectBean;
+import org.open.cdi.exceptions.DIContainerUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
 import java.util.*;
 
 import static org.open.cdi.DIClassLoader.findAllClassesUsingClassLoader;
+import static org.open.cdi.exceptions.DIContainerUtils.getDIAnnotation;
 
 
 /**
@@ -21,6 +24,8 @@ public class DIContainer {
     private static final Logger logger = LoggerFactory.getLogger(DIContainer.class);
     private final Map<String, Object> singletonBeans = new HashMap<>();
     private final Map<String, Class<?>> prototypeBeans = new HashMap<>();
+
+    private final DIContainerUtils utils = new DIContainerUtils();
 
 
     /**
@@ -46,7 +51,7 @@ public class DIContainer {
             String className = parseClassNameFromClassToString(obj.getClass().getName());
             DIBean annotation = objClass.getDeclaredAnnotation(DIBean.class);
             if (annotation == null) singletonBeans.put(className, obj);
-            else {
+            else if (!Modifier.isAbstract(objClass.getModifiers())) {
                 String val = annotation.value();
                 BeanScope scope = annotation.scope();
                 if (val.equals("")) {
@@ -75,20 +80,14 @@ public class DIContainer {
      */
     private void injectDependencies(Object... objects) {
         try {
-
             for (Object obj : objects) {
                 Class<?> clazz = obj.getClass();
-                Set<Field> fieldsSet = new HashSet<>();
+                List<Field> injectableFields = utils.getAllInjectableFieldsRecursively(clazz);
 
-                fieldsSet.addAll(Arrays.asList(clazz.getFields()));
-                fieldsSet.addAll(Arrays.asList(clazz.getDeclaredFields()));
-                for (Field field : fieldsSet.toArray(new Field[] {})) {
+                for (Field field : injectableFields) {
                     InjectBean val = getDIAnnotation(field);
-                    if (val != null) {
-                        field.setAccessible(true);
-                        if (val.value().equals("")) field.set(obj, find(parseClassNameFromClassToString(field.getType().getTypeName())));
-                        else field.set(obj, find(val.value()));
-                    }
+                    if (val.value().equals("")) field.set(obj, find(parseClassNameFromClassToString(field.getType().getTypeName())));
+                    else field.set(obj, find(val.value()));
                 }
             }
         } catch (IllegalAccessException ex) {
@@ -96,14 +95,6 @@ public class DIContainer {
         }
     }
 
-    private static InjectBean getDIAnnotation(Field field) {
-        Annotation[] annotations = field.getAnnotations();
-        for (Annotation a : annotations) {
-            Class<?> type = a.annotationType();
-            if (type.getName().equals(InjectBean.class.getName())) return (InjectBean) a;
-        }
-        return null;
-    }
 
 
     /**
@@ -121,6 +112,7 @@ public class DIContainer {
      * @param beanName bean's name
      * @return a bean wrapped on nullable {@link Optional}
      */
+    @Deprecated
     public Object find(String beanName) {
         if (beanName == null) throw new IllegalArgumentException("Argument is null");
         else if (beanName.trim().length() == 0) throw new IllegalArgumentException("Argument is empty string");
@@ -137,7 +129,7 @@ public class DIContainer {
     }
 
 
-    private boolean hasBeanWithName(String beanName) {
+    public boolean hasBeanWithName(String beanName) {
         return find(beanName) != null;
     }
 

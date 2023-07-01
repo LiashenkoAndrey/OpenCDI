@@ -11,7 +11,7 @@ import org.open.cdi.annotations.InjectBean;
 @Getter
 @Setter
 @NoArgsConstructor
-public class ParentBean {
+public  class ParentBean {
 
     @InjectBean
     public Person person;

@@ -114,17 +114,6 @@ public class DIContainerTest {
     }
 
 
-
-    @Test
-    public void getDIAnnotationTest() throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
-        Field field = Person.class.getDeclaredFields()[0];
-        Optional<Object> optional = invokePrivateMethod(DIContainer.class.getConstructor().newInstance(), DIContainer.class,  "getDIAnnotation", new Class[] {Field.class},  field);
-        assertTrue(optional.isPresent());
-        InjectBean injectBean = (InjectBean) optional.get();
-        System.out.println(injectBean.value());
-    }
-
-
     private Optional<Object> invokePrivateMethod(Object invoker, Class<?> clazz, String methodName, Class<?>[] expectedMethodArgs, Object... args) {
         try {
             Method method = clazz.getDeclaredMethod(methodName, expectedMethodArgs);
