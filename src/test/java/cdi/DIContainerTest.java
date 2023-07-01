@@ -5,7 +5,6 @@ import cdi.util.packageOfBeans.Fox;
 import org.junit.jupiter.api.Test;
 import org.open.cdi.BeanManager;
 import org.open.cdi.DIContainer;
-import org.open.cdi.annotations.InjectBean;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -24,7 +23,7 @@ public class DIContainerTest {
         BeanManager manager = new BeanManager();
         Person bean = Person.random();
         manager.loadWithName(bean, "bean");
-        Person person = (Person) manager.find("bean");
+        Person person = manager.find(Person.class,"bean");
         assertEquals(bean, person);
     }
 
@@ -33,7 +32,7 @@ public class DIContainerTest {
         BeanManager manager = new BeanManager();
         manager.loadFromPackages("cdi.util.packageOfBeans");
 
-        Fox fox = (Fox) manager.find("Fox");
+        Fox fox = manager.find(Fox.class,"Fox");
         assertNotNull(fox);
     }
 
@@ -49,8 +48,8 @@ public class DIContainerTest {
         assertFalse(manager.containerIsEmpty());
         assertEquals(2, manager.containerSize());
 
-        Fox foxFromContainer = (Fox) manager.find("Fox");
-        Person personFromContainer = (Person) manager.find("Person");
+        Fox foxFromContainer = manager.find(Fox.class,"Fox");
+        Person personFromContainer = manager.find(Person.class,"Person");
 
         assertNotNull(foxFromContainer);
         assertNotNull(personFromContainer);
@@ -65,7 +64,7 @@ public class DIContainerTest {
         BeanManager manager = new BeanManager();
         manager.loadWithName(person, "person");
 
-        Person actual = (Person) manager.find("person");
+        Person actual = manager.find(Person.class,"person");
         assertEquals(person, actual);
 
 
@@ -107,7 +106,7 @@ public class DIContainerTest {
 
         manager.init();
 
-        Person personFromContext = (Person) manager.find("Person");
+        Person personFromContext = manager.find(Person.class,"Person");
         assertNotNull(personFromContext);
         assertNotNull(personFromContext.getAddress());
         assertEquals(address, personFromContext.getAddress());
@@ -129,13 +128,13 @@ public class DIContainerTest {
 
         Person person = Person.random();
         manager.loadWithName(person, "bean");
-        Person saved = (Person) manager.find("bean");
+        Person saved = manager.find(Person.class,"bean");
 
         assertNotNull(saved);
         assertEquals(person, saved);
 
-        assertThrows(IllegalArgumentException.class, () -> manager.find(null));
-        assertThrows(IllegalArgumentException.class, () -> manager.find(""));
+        assertThrows(IllegalArgumentException.class, () -> manager.find(Person.class,null));
+        assertThrows(IllegalArgumentException.class, () -> manager.find(Person.class,""));
     }
 
     @Test
@@ -169,8 +168,8 @@ public class DIContainerTest {
     public void clearContextTest() {
         DIContainer container = new DIContainer();
 
-        HashMap<String, Object>  singletonBeans = (HashMap<String, Object>) getFieldOfObject(container, "singletonBeans");
-        HashMap<String, Class<?>>  prototypeBeans = (HashMap<String, Class<?>>) getFieldOfObject(container, "prototypeBeans");
+        HashMap<String, Object>  singletonBeans = getValueOfObjectField(container, "singletonBeans");
+        HashMap<String, Class<?>>  prototypeBeans = getValueOfObjectField(container, "prototypeBeans");
 
         assertEquals(0, sizeOfMaps(singletonBeans, prototypeBeans));
         assertTrue(container.containerIsEmpty());
@@ -188,11 +187,11 @@ public class DIContainerTest {
         return Stream.of(maps).mapToInt(Map::size).sum();
     }
 
-    private Object getFieldOfObject(Object obj, String fieldName) {
+    private <T> T getValueOfObjectField(Object obj, String fieldName) {
         try {
             Field field =  obj.getClass().getDeclaredField(fieldName);
             field.setAccessible(true);
-            return field.get(obj);
+            return (T) field.get(obj);
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         }
@@ -201,8 +200,8 @@ public class DIContainerTest {
     @Test
     public void containerSizeTest() {
         DIContainer container = new DIContainer();
-        HashMap<String, Object>  singletonBeans = (HashMap<String, Object>) getFieldOfObject(container, "singletonBeans");
-        HashMap<String, Class<?>>  prototypeBeans = (HashMap<String, Class<?>>) getFieldOfObject(container, "prototypeBeans");
+        HashMap<String, Object>  singletonBeans = getValueOfObjectField(container, "singletonBeans");
+        HashMap<String, Class<?>>  prototypeBeans =  getValueOfObjectField(container, "prototypeBeans");
 
         assertEquals(0, sizeOfMaps(singletonBeans, prototypeBeans));
         assertEquals(0, container.containerSize());
@@ -226,8 +225,8 @@ public class DIContainerTest {
     @Test
     public void containerIsEmptyTest() {
         DIContainer container = new DIContainer();
-        HashMap<String, Object>  singletonBeans = (HashMap<String, Object>) getFieldOfObject(container, "singletonBeans");
-        HashMap<String, Class<?>>  prototypeBeans = (HashMap<String, Class<?>>) getFieldOfObject(container, "prototypeBeans");
+        HashMap<String, Object>  singletonBeans = getValueOfObjectField(container, "singletonBeans");
+        HashMap<String, Class<?>>  prototypeBeans =  getValueOfObjectField(container, "prototypeBeans");
 
         assertEquals(0, sizeOfMaps(singletonBeans, prototypeBeans));
         assertTrue(container.containerIsEmpty());
