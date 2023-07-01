@@ -136,7 +136,23 @@ public class DIContainerTest {
 
         assertThrows(IllegalArgumentException.class, () -> manager.find(null));
         assertThrows(IllegalArgumentException.class, () -> manager.find(""));
+    }
 
+    @Test
+    public void findTest2() {
+        BeanManager manager = new BeanManager();
+
+        Person person = Person.random();
+        manager.loadWithName(person, "bean");
+        Person saved = manager.find(Person.class,"bean");
+
+        assertNotNull(saved);
+        assertEquals(person, saved);
+
+        assertThrows(IllegalArgumentException.class, () -> manager.find(Person.class,null));
+        assertThrows(IllegalArgumentException.class, () -> manager.find(Person.class,""));
+        assertThrows(IllegalArgumentException.class, () -> manager.find(null,""));
+        assertThrows(IllegalArgumentException.class, () -> manager.find(BeanManager.class,""));
     }
 
     @Test

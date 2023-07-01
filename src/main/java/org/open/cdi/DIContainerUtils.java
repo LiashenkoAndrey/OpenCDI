@@ -1,4 +1,4 @@
-package org.open.cdi.exceptions;
+package org.open.cdi;
 
 import org.open.cdi.annotations.InjectBean;
 
@@ -34,6 +34,10 @@ public class DIContainerUtils {
         if (clazz.getSuperclass() != null) {
             getAllInjectableFieldsFromClass(clazz.getSuperclass(), fieldList);
         }
+    }
 
+    public static String parseClassNameFromClassToString(String path) {
+        String[] arr = path.split("\\.");
+        return arr[arr.length-1];
     }
 }

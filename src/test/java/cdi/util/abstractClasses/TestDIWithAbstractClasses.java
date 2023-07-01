@@ -1,13 +1,7 @@
 package cdi.util.abstractClasses;
 
-import cdi.util.inheritance.ChildBean;
 import org.junit.jupiter.api.Test;
 import org.open.cdi.BeanManager;
-import org.open.cdi.exceptions.DIContainerUtils;
-
-import java.lang.reflect.Field;
-import java.util.Arrays;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;

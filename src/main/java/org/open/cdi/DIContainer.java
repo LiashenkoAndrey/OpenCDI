@@ -3,18 +3,18 @@ package org.open.cdi;
 import org.open.cdi.annotations.BeanScope;
 import org.open.cdi.annotations.DIBean;
 import org.open.cdi.annotations.InjectBean;
-import org.open.cdi.exceptions.DIContainerUtils;
+import org.open.cdi.exceptions.WrongBeanTypeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.*;
 
 import static org.open.cdi.DIClassLoader.findAllClassesUsingClassLoader;
-import static org.open.cdi.exceptions.DIContainerUtils.getDIAnnotation;
+import static org.open.cdi.DIContainerUtils.getDIAnnotation;
+import static org.open.cdi.DIContainerUtils.parseClassNameFromClassToString;
 
 
 /**
@@ -73,7 +73,6 @@ public class DIContainer {
         singletonBeans.put(beanName, obj);
     }
 
-
     /**
      * Finds fields annotated with {@link InjectBean} and injects appropriate bean by name specified in annotation
      * If there are no appropriate bean injects {@code null}
@@ -96,7 +95,6 @@ public class DIContainer {
     }
 
 
-
     /**
      * injects dependencies for both singleton and prototype beans
      */
@@ -108,12 +106,44 @@ public class DIContainer {
 
 
     /**
-     * Finds bean in container
+     * Finds bean in container by bean name
+     *
+     *  @deprecated
+     *  This method is no longer acceptable.
+     *  <p> Use {@link DIContainer#find(Class, String)} instead.
+     *
      * @param beanName bean's name
      * @return a bean wrapped on nullable {@link Optional}
      */
-    @Deprecated
+    @Deprecated(since = "version 0.1", forRemoval = true)
     public Object find(String beanName) {
+        return findBeanByName(beanName);
+    }
+
+
+    /**
+     * Finds saved instance of the class stored in container by bean name
+     * @param type type of bean
+     * @param beanName name of bean
+     * @return saved instance of class stored in container
+     * @param <T> type of stores bean
+     */
+    @SuppressWarnings("unchecked cast")
+    public <T> T find(Class<T> type, String beanName) {
+        Object bean = findBeanByName(beanName);
+        if (type == null) throw new IllegalArgumentException("Type is null");
+
+        if (bean != null) {
+            if (bean.getClass().equals(type)) { // if bean is instance of specified type
+                return (T) bean;
+            } else throw new WrongBeanTypeException("Specified type: "+ type.getName() + " is not the same which in found bean: " + bean.getClass().getName());
+
+        } else {
+            return null;
+        }
+    }
+
+    private Object findBeanByName(String beanName) {
         if (beanName == null) throw new IllegalArgumentException("Argument is null");
         else if (beanName.trim().length() == 0) throw new IllegalArgumentException("Argument is empty string");
         Object bean = singletonBeans.get(beanName);
@@ -130,7 +160,11 @@ public class DIContainer {
 
 
     public boolean hasBeanWithName(String beanName) {
-        return find(beanName) != null;
+        return findBeanByName(beanName) != null;
+    }
+
+    public Class getTypeOfBeanByName(String beanName) {
+        return findBeanByName(beanName).getClass();
     }
 
     private Object createInstance(Class<?> clazz) {
@@ -163,13 +197,9 @@ public class DIContainer {
         return singletonBeans.size() + prototypeBeans.size();
     }
 
+
     public boolean containerIsEmpty() {
         return containerSize() == 0;
     }
 
-
-    public static String parseClassNameFromClassToString(String path) {
-        String[] arr = path.split("\\.");
-        return arr[arr.length-1];
-    }
 }

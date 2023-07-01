@@ -2,7 +2,7 @@ package cdi.util;
 
 import cdi.util.abstractClasses.UserDao;
 import org.junit.jupiter.api.Test;
-import org.open.cdi.exceptions.DIContainerUtils;
+import org.open.cdi.DIContainerUtils;
 
 import java.lang.reflect.Field;
 import java.util.List;
