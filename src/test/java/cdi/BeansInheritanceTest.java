@@ -18,7 +18,7 @@ public class BeansInheritanceTest {
         manager.loadAll(new ParentBean(), new ChildBean(), person);
         manager.init();
 
-        ChildBean childBean = (ChildBean) manager.find("ChildBean");
+        ChildBean childBean = manager.find(ChildBean.class, "ChildBean");
 
         assertNotNull(childBean.person);
         assertEquals(childBean.person, person);
