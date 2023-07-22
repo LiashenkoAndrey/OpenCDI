@@ -1,6 +1,6 @@
 package org.open.cdi;
 
-import org.open.cdi.annotations.DIBean;
+import org.open.cdi.annotations.Component;
 import org.open.cdi.exceptions.ClassLoadingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,7 +20,7 @@ public class DIClassLoader {
     private static final Logger logger = LoggerFactory.getLogger(DIContainer.class);
 
     /**
-     * Loads all classes annotated {@link DIBean} form specified package
+     * Loads all classes annotated {@link Component} form specified package
      * further creates an array instances of them
      * @param packageName package name for class loading
      * @return an array of instances of loaded classes
@@ -35,7 +35,7 @@ public class DIClassLoader {
                 .filter(line -> line.endsWith(".class"))
                 .map(line -> getClassesFromPackage(line, packageName))
                 .filter(Objects::nonNull)
-                .filter((clazz) -> clazz.getAnnotation(DIBean.class) != null)
+                .filter((clazz) -> clazz.getAnnotation(Component.class) != null)
                 .map(v -> {
                     try {
                         return  v.getDeclaredConstructor().newInstance();

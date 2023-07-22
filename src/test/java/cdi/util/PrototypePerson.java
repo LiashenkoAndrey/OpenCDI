@@ -1,8 +1,8 @@
 package cdi.util;
 
 import lombok.*;
-import org.open.cdi.annotations.BeanScope;
-import org.open.cdi.annotations.DIBean;
+import org.open.cdi.annotations.Scope;
+import org.open.cdi.annotations.Component;
 
 import java.util.List;
 import java.util.Random;
@@ -14,7 +14,7 @@ import java.util.Random;
 @ToString
 @Builder
 @AllArgsConstructor
-@DIBean(scope = BeanScope.PROTOTYPE)
+@Component(scope = Scope.PROTOTYPE)
 public class PrototypePerson {
 
     private int age;

@@ -1,10 +1,10 @@
 package cdi.util;
 
 import lombok.NoArgsConstructor;
-import org.open.cdi.annotations.DIBean;
+import org.open.cdi.annotations.Component;
 
 @NoArgsConstructor
-@DIBean
+@Component
 public class UserService {
 
     private int value;

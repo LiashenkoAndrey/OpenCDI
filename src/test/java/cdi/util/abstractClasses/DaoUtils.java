@@ -1,10 +1,10 @@
 package cdi.util.abstractClasses;
 
-import org.open.cdi.annotations.DIBean;
+import org.open.cdi.annotations.Component;
 
 import java.util.Random;
 
-@DIBean
+@Component
 public class DaoUtils {
 
     public Long getRandomLong() {

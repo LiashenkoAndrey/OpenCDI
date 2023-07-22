@@ -1,7 +1,7 @@
 package org.open.cdi;
 
-import org.open.cdi.annotations.DIBean;
+import org.open.cdi.annotations.Component;
 
-@DIBean
+@Component
 public class BeanManager extends DIContainer {
 }

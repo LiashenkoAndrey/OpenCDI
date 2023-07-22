@@ -3,9 +3,9 @@ package cdi.util.inheritance;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.open.cdi.annotations.DIBean;
+import org.open.cdi.annotations.Component;
 
-@DIBean
+@Component
 @Getter
 @Setter
 @NoArgsConstructor

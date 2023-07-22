@@ -1,20 +1,27 @@
 package org.open.cdi;
 
-import org.open.cdi.annotations.BeanScope;
-import org.open.cdi.annotations.DIBean;
-import org.open.cdi.annotations.InjectBean;
-import org.open.cdi.exceptions.WrongBeanTypeException;
+import lombok.SneakyThrows;
+import org.open.cdi.annotations.Component;
+import org.open.cdi.annotations.Inject;
+import org.open.cdi.annotations.Scope;
+import org.open.cdi.annotations.Use;
+import org.open.cdi.exceptions.ComponentNotFoundException;
+import org.open.cdi.exceptions.MultipleComponentsWithTheSameClassException;
+import org.open.cdi.exceptions.injectImpl.MultipleImplementationException;
+import org.open.cdi.exceptions.WrongComponentTypeException;
+import org.open.cdi.exceptions.injectImpl.NoImplementationException;
+import org.open.cdi.exceptions.validation.ClassIsAbstractException;
+import org.open.cdi.exceptions.injectImpl.IllegalQualifierException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.lang.model.type.NullType;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.*;
 
 import static org.open.cdi.DIClassLoader.findAllClassesUsingClassLoader;
-import static org.open.cdi.DIContainerUtils.getDIAnnotation;
-import static org.open.cdi.DIContainerUtils.parseClassNameFromClassToString;
+import static org.open.cdi.DIContainerUtils.getAllInjectableFieldsRecursively;
 
 
 /**
@@ -23,77 +30,9 @@ import static org.open.cdi.DIContainerUtils.parseClassNameFromClassToString;
 public class DIContainer {
     private static final Logger logger = LoggerFactory.getLogger(DIContainer.class);
     private final Map<String, Object> singletonBeans = new HashMap<>();
-    private final Map<String, Class<?>> prototypeBeans = new HashMap<>();
+    private final Map<String, Object> prototypeBeans = new HashMap<>();
 
-    private final DIContainerUtils utils = new DIContainerUtils();
-
-
-    /**
-     * finds classes annotated {@link DIBean} in specified packages and loads them in the singleton ot prototype context
-     * @param packages packages for loading beans
-     */
-    public void loadFromPackages(String... packages) {
-        for (String pkg : packages) {
-            logger.info("Loading beans from packages: " + Arrays.toString(packages));
-            loadAll(findAllClassesUsingClassLoader(pkg));
-        }
-    }
-
-
-    /**
-     * Loads classes annotated {@link DIBean}
-     * @param objects objects for loading in container
-     */
-    public void loadAll(Object... objects) {
-        logger.info(objects.length +" beans were found");
-        for (Object obj : objects) {
-            Class<?> objClass = obj.getClass();
-            String className = parseClassNameFromClassToString(obj.getClass().getName());
-            DIBean annotation = objClass.getDeclaredAnnotation(DIBean.class);
-            if (annotation == null) singletonBeans.put(className, obj);
-            else if (!Modifier.isAbstract(objClass.getModifiers())) {
-                String val = annotation.value();
-                BeanScope scope = annotation.scope();
-                if (val.equals("")) {
-                    if (scope == BeanScope.PROTOTYPE) prototypeBeans.put(className, objClass);
-                    else singletonBeans.put(className, obj);
-
-                } else {
-                    if (scope == BeanScope.PROTOTYPE) prototypeBeans.put(val, objClass);
-                    else singletonBeans.put(val, obj);
-                }
-            }
-        }
-    }
-
-    public void loadWithName(Object obj, String beanName) {
-        if (obj == null || beanName == null) throw new IllegalArgumentException("Arguments can't be null");
-        else if (beanName.trim().length() == 0) throw new IllegalArgumentException("Argument 'beanName' is empty string");
-        logger.info("Load single object: " + obj.getClass() +", with name " + beanName);
-        singletonBeans.put(beanName, obj);
-    }
-
-    /**
-     * Finds fields annotated with {@link InjectBean} and injects appropriate bean by name specified in annotation
-     * If there are no appropriate bean injects {@code null}
-     */
-    private void injectDependencies(Object... objects) {
-        try {
-            for (Object obj : objects) {
-                Class<?> clazz = obj.getClass();
-                List<Field> injectableFields = utils.getAllInjectableFieldsRecursively(clazz);
-
-                for (Field field : injectableFields) {
-                    InjectBean val = getDIAnnotation(field);
-                    if (val.value().equals("")) field.set(obj, find(parseClassNameFromClassToString(field.getType().getTypeName())));
-                    else field.set(obj, find(val.value()));
-                }
-            }
-        } catch (IllegalAccessException ex) {
-            throw new RuntimeException(ex);
-        }
-    }
-
+    private final List<Object> impls = new ArrayList<>();
 
     /**
      * injects dependencies for both singleton and prototype beans
@@ -106,18 +45,144 @@ public class DIContainer {
 
 
     /**
-     * Finds bean in container by bean name
-     *
-     *  @deprecated
-     *  This method is no longer acceptable.
-     *  <p> Use {@link DIContainer#find(Class, String)} instead.
-     *
-     * @param beanName bean's name
-     * @return a bean wrapped on nullable {@link Optional}
+     * finds classes annotated {@link Component} in specified packages and loads them in the singleton ot prototype context
+     * @param packages packages for loading beans
      */
-    @Deprecated(since = "version 0.1", forRemoval = true)
-    public Object find(String beanName) {
-        return findBeanByName(beanName);
+    public void loadFromPackages(String... packages) {
+        for (String pkg : packages) {
+            loadAll(findAllClassesUsingClassLoader(pkg));
+        }
+    }
+
+
+
+    public void loadAll(Object... objects) {
+        for (Object obj : objects) {
+            load(obj);
+        }
+    }
+
+    /**
+     * Loads class annotated {@link Component}
+     * @param obj objects for loading in container
+     */
+    public void load(Object obj) {
+        Class<?> clazz = obj.getClass();
+        validate(clazz);
+
+        if (clazz.getInterfaces().length != 0) {
+            impls.add(obj);
+        }
+        Component ann = clazz.getAnnotation(Component.class);
+        String name = getName(clazz, ann.value());
+        putIntoContext(obj, name, ann.scope());
+    }
+
+    private void putIntoContext(Object o, String name, Scope scope) {
+        switch (scope) {
+            case PROTOTYPE -> prototypeBeans.put(name, o);
+
+            case SINGLETON -> singletonBeans.put(name, o);
+        }
+    }
+
+    public void loadWithName(Object obj, String name) {
+        Class<?> clazz = obj.getClass();
+        validate(clazz);
+
+        Component ann = clazz.getAnnotation(Component.class);
+        putIntoContext(obj, name, ann.scope());
+    }
+
+
+    private String getName(Class<?> clazz, String val) {
+        if (val.isEmpty()) {
+            return clazz.getSimpleName();
+        } else return val;
+    }
+
+    private void validate(Class<?> clazz) {
+        if (isAbstract(clazz) || !isComponent(clazz)) throw new ClassIsAbstractException("is abstract");
+    }
+
+
+    private boolean isComponent(Class<?> clazz) {
+        return clazz.getDeclaredAnnotation(Component.class) != null;
+    }
+
+    private boolean isAbstract(Class<?> clazz) {
+        return Modifier.isAbstract(clazz.getModifiers());
+    }
+
+    /**
+     * Finds fields annotated with {@link Inject} and injects appropriate bean by name specified in annotation
+     * If there are no appropriate bean injects {@code null}
+     */
+    @SneakyThrows
+    private void injectDependencies(Object... objects) {
+        for (Object obj : objects) {
+            Class<?> clazz = obj.getClass();
+            List<Field> injectableFields = getAllInjectableFieldsRecursively(clazz);
+
+            for (Field field : injectableFields) {
+                if (field.getType().isInterface()) {
+                    Object impl = findImpl(field);
+                    field.set(obj, impl);
+
+                } else {
+                    String val = field.getAnnotation(Inject.class).value();
+                    if (val.isEmpty()) {
+                        field.set(obj, findByName(field.getClass().getSimpleName()));
+                    } else {
+                        field.set(obj, findByName(val));
+                    }
+                }
+            }
+        }
+    }
+
+
+
+    public Object findImpl(Field field) {
+        Class<?> type = field.getType();
+
+        List<Object> implsList = impls.stream()
+                .filter(impl -> {
+                    Class<?>[] classes = impl.getClass().getInterfaces();
+                            return List.of(classes).contains(type);
+                        }).toList();
+
+        int size = implsList.size();
+        if (size == 0) {
+            throw new NoImplementationException("There is no implementation for " + type + ". Please provide an implementation into context");
+
+        } else if (size == 1) {
+            return implsList.get(0);
+
+        } else {
+            Use annotation = field.getAnnotation(Use.class);
+            if (annotation == null) throw new MultipleImplementationException("There is more then one implementation of " + type + " class, impls: " + implsList.stream().map(Object::getClass).toList() + ". Please use org.open.cdi.annotations.Use annotation to choose the implementation");
+
+            String useImpl = annotation.value();
+            Class<?> useClass = annotation.clazz();
+            if (!useImpl.isBlank()) {
+                Optional<Object> bean = findByName(useImpl);
+                if (bean.isPresent()) {
+                    return bean.get();
+                } else {
+                    throw new ComponentNotFoundException("Component with name: '" + useImpl + "' not found");
+                }
+            } else if (!useClass.equals(NullType.class)) {
+                Optional<Object> bean = findByClass(useClass);
+                if (bean.isPresent()) {
+                    return bean.get();
+                } else {
+                    throw new ComponentNotFoundException("Component with class name: '" + useClass.getName() + "' not found");
+                }
+            } else {
+                throw new IllegalQualifierException("Qualifier: '" + useImpl + "' is illegal. Please provide component name or class as a parameter. For example @Use('ImplClass') or @Use(clazz = ImplClass.class) ");
+            }
+        }
     }
 
 
@@ -128,55 +193,63 @@ public class DIContainer {
      * @return saved instance of class stored in container
      * @param <T> type of stores bean
      */
-    @SuppressWarnings("unchecked cast")
-    public <T> T find(Class<T> type, String beanName) {
-        Object bean = findBeanByName(beanName);
+    @SuppressWarnings("unchecked")
+    public <T> Optional<T> find(Class<T> type, String beanName) {
         if (type == null) throw new IllegalArgumentException("Type is null");
+        Optional<Object> bean = findByName(beanName);
 
-        if (bean != null) {
-            if (bean.getClass().equals(type)) { // if bean is instance of specified type
-                return (T) bean;
-            } else throw new WrongBeanTypeException("Specified type: "+ type.getName() + " is not the same which in found bean: " + bean.getClass().getName());
+        if (bean.isPresent()) {
+            if (bean.get().getClass().equals(type)) { // if bean is instance of specified type
+                return Optional.of((T) bean.get());
+            } else throw new WrongComponentTypeException("Specified type: "+ type.getName() + " is not the same which in found bean: " + bean.getClass().getName());
 
         } else {
-            return null;
+            return Optional.empty();
         }
     }
 
-    private Object findBeanByName(String beanName) {
-        if (beanName == null) throw new IllegalArgumentException("Argument is null");
-        else if (beanName.trim().length() == 0) throw new IllegalArgumentException("Argument is empty string");
-        Object bean = singletonBeans.get(beanName);
-        if (bean == null) {
-            Class<?> clazz = prototypeBeans.get(beanName);
-            if (clazz != null) {
-                bean = createInstance(clazz);
-                injectDependencies(bean);
-            }
+    @SuppressWarnings("unchecked")
+    public <T> Optional<T> find(Class<T> type) {
+        if (type == null) throw new IllegalArgumentException("Type is null");
+        Optional<Object> bean = findByClass(type);
+
+        return bean.map(o -> (T) o);
+    }
+
+    public Optional<Object> findByName(String name) {
+        validateComponentName(name);
+
+        if (singletonBeans.containsKey(name)) {
+            return Optional.of(singletonBeans.get(name));
+
+        } else if (prototypeBeans.containsKey(name)) {
+            return Optional.of(prototypeBeans.get(name));
+
+        } else {
+            return Optional.empty();
         }
-        logger.info("Finding a bean with name \"" + beanName+"\": " + (bean != null) );
-        return bean;
     }
 
 
-    public boolean hasBeanWithName(String beanName) {
-        return findBeanByName(beanName) != null;
-    }
+    private Optional<Object> findByClass(Class<?> clazz) {
+        List<Object> singletonList = singletonBeans.values().stream()
+                .filter(o -> o.getClass().getName().equals(clazz.getName()))
+                .toList();
 
-    public Class getTypeOfBeanByName(String beanName) {
-        return findBeanByName(beanName).getClass();
-    }
-
-    private Object createInstance(Class<?> clazz) {
-        System.out.println(clazz);
-        if (clazz == null) throw new IllegalArgumentException("Argument is not present!");
-        try {
-            Object o = clazz.getConstructor().newInstance();
-            injectDependencies(o);
-            return o;
-        } catch (InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException e) {
-            throw new RuntimeException(e);
+        int size = singletonList.size();
+        if (size == 0) {
+            return Optional.empty();
+        } else if (size == 1) {
+            return Optional.of(singletonList.get(0));
+        } else {
+            throw new MultipleComponentsWithTheSameClassException("There is multiple components with the same class " + clazz + ", components: " + singletonList);
         }
+    }
+
+
+    private void validateComponentName(String name) {
+        if (name == null) throw new IllegalArgumentException("Argument is null");
+        else if (name.length() == 0) throw new IllegalArgumentException("Argument is empty string");
     }
 
     /**
@@ -186,6 +259,13 @@ public class DIContainer {
         logger.info("Clear context!");
         prototypeBeans.clear();
         singletonBeans.clear();
+    }
+
+    public Map<String, Object> getContext() {
+        Map<String, Object> map = new HashMap<>(singletonBeans.size() + prototypeBeans.size());
+        map.putAll(prototypeBeans);
+        map.putAll(singletonBeans);
+        return map;
     }
 
 

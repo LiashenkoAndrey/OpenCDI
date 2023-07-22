@@ -4,15 +4,15 @@ import cdi.util.Person;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.open.cdi.annotations.DIBean;
-import org.open.cdi.annotations.InjectBean;
+import org.open.cdi.annotations.Component;
+import org.open.cdi.annotations.Inject;
 
-@DIBean
+@Component
 @Getter
 @Setter
 @NoArgsConstructor
 public  class ParentBean {
 
-    @InjectBean
+    @Inject
     public Person person;
 }

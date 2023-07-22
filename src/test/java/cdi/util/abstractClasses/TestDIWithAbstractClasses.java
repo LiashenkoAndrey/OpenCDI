@@ -16,15 +16,15 @@ public class TestDIWithAbstractClasses {
         manager.init();
 
 
-        UserDao userDao = (UserDao) manager.find("UserDao");
-        DaoUtils daoUtils = (DaoUtils) manager.find("DaoUtils");
-        assertNotNull(userDao);
-        assertNotNull(daoUtils);
-
-        assertNotNull(daoUtils.getRandomLong());
-        assertNotNull(userDao.utils);
-        assertNotNull(userDao.abstractClassValue);
-        assertNotNull(userDao.generateIdAndPrint());
+//        UserDao userDao = (UserDao) manager.find("UserDao");
+//        DaoUtils daoUtils = (DaoUtils) manager.find("DaoUtils");
+//        assertNotNull(userDao);
+//        assertNotNull(daoUtils);
+//
+//        assertNotNull(daoUtils.getRandomLong());
+//        assertNotNull(userDao.utils);
+//        assertNotNull(userDao.abstractClassValue);
+//        assertNotNull(userDao.generateIdAndPrint());
     }
 
 

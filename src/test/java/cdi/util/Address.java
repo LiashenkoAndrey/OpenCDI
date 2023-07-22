@@ -1,13 +1,12 @@
 package cdi.util;
 
 import lombok.*;
-import org.open.cdi.annotations.BeanScope;
-import org.open.cdi.annotations.DIBean;
+import org.open.cdi.annotations.Component;
 
 @NoArgsConstructor
 @Setter
 @Getter
-@DIBean
+@Component
 @AllArgsConstructor
 @EqualsAndHashCode
 public class Address {

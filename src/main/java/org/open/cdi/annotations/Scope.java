@@ -1,6 +1,6 @@
 package org.open.cdi.annotations;
 
-public enum BeanScope {
+public enum Scope {
     SINGLETON,
     PROTOTYPE
 }

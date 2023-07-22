@@ -1,6 +1,6 @@
 package org.open.cdi.exceptions;
 
-public class WrongBeanTypeException extends RuntimeException {
+public class WrongComponentTypeException extends RuntimeException {
 
     /**
      * Constructs a new runtime exception with the specified detail message.
@@ -10,7 +10,7 @@ public class WrongBeanTypeException extends RuntimeException {
      * @param message the detail message. The detail message is saved for
      *                later retrieval by the {@link #getMessage()} method.
      */
-    public WrongBeanTypeException(String message) {
+    public WrongComponentTypeException(String message) {
         super(message);
     }
 }

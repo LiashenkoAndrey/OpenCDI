@@ -1,12 +1,12 @@
 package cdi.util;
 
-import org.open.cdi.annotations.DIBean;
-import org.open.cdi.annotations.InjectBean;
+import org.open.cdi.annotations.Component;
+import org.open.cdi.annotations.Inject;
 
-@DIBean
+@Component
 public class Controller {
 
-    @InjectBean
+    @Inject
     UserService userService;
 
 

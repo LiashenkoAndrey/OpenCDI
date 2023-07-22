@@ -1,8 +1,8 @@
 package cdi.util.abstractClasses;
 
-import org.open.cdi.annotations.DIBean;
+import org.open.cdi.annotations.Component;
 
-@DIBean
+@Component
 public class Dependency1 {
 
     public void show() {

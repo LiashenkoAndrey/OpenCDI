@@ -2,9 +2,9 @@ package cdi.util.packageOfBeans;
 
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import org.open.cdi.annotations.DIBean;
+import org.open.cdi.annotations.Component;
 
-@DIBean
+@Component
 @EqualsAndHashCode
 @NoArgsConstructor
 public class Fox {

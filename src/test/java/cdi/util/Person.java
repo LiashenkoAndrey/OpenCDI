@@ -1,9 +1,8 @@
 package cdi.util;
 
 import lombok.*;
-import org.open.cdi.annotations.BeanScope;
-import org.open.cdi.annotations.DIBean;
-import org.open.cdi.annotations.InjectBean;
+import org.open.cdi.annotations.Component;
+import org.open.cdi.annotations.Inject;
 
 import java.util.List;
 import java.util.Random;
@@ -13,12 +12,12 @@ import java.util.Random;
 @EqualsAndHashCode
 @NoArgsConstructor
 @ToString
-@DIBean
+@Component
 @Builder
 @AllArgsConstructor
 public class Person {
 
-    @InjectBean
+    @Inject
     private Address address;
 
     private int age;

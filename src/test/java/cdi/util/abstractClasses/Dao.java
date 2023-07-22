@@ -1,12 +1,12 @@
 package cdi.util.abstractClasses;
 
-import org.open.cdi.annotations.InjectBean;
+import org.open.cdi.annotations.Inject;
 
 public abstract class Dao extends AbstractDAO {
 
-    @InjectBean
+    @Inject
     private Dependency1 dependency1;
 
-    @InjectBean
+    @Inject
     protected DaoUtils utils;
 }
