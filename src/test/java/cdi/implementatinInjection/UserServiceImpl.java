@@ -1,6 +1,6 @@
 package cdi.implementatinInjection;
 
-import org.open.cdi.annotations.Component;
+import org.openCDI.annotations.Component;
 
 @Component
 
