@@ -46,6 +46,8 @@ public class Controller {
 }
 ```
 
+Package structure
+![The San Juan Mountains are beautiful!](/packageStucture.png)
 
 Usage
 ```java
