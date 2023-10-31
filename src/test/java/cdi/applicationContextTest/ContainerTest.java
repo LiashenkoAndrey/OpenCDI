@@ -1,6 +1,7 @@
-package cdi;
+package cdi.applicationContextTest;
 
-
+import cdi.util.Address;
+import cdi.util.Person;
 import cdi.packageOfBeans.Fox;
 import org.junit.jupiter.api.Test;
 import org.openCDI.ApplicationContext;
@@ -8,7 +9,6 @@ import org.openCDI.ApplicationContextFactory;
 import org.openCDI.exceptions.ComponentNotFoundException;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -63,16 +63,11 @@ public class ContainerTest {
     public void loadWithNameTest() {
         Person person = Person.random();
         ApplicationContext context = ApplicationContextFactory.getApplicationContext();
-
         context.loadAll(person);
 
         Person actual = context.find(Person.class).orElseThrow(ComponentNotFoundException::new);
         assertEquals(person, actual);
-
-
     }
-
-
 
     @Test
     public void initTest() {
@@ -91,15 +86,6 @@ public class ContainerTest {
     }
 
 
-    private Optional<Object> invokePrivateMethod(Object invoker, Class<?> clazz, String methodName, Class<?>[] expectedMethodArgs, Object... args) {
-        try {
-            Method method = clazz.getDeclaredMethod(methodName, expectedMethodArgs);
-            method.setAccessible(true);
-            return Optional.ofNullable(method.invoke(invoker, args));
-        } catch (Exception ex) {
-            throw new RuntimeException(ex);
-        }
-    }
     @Test
     public void findTest() {
         ApplicationContext context = ApplicationContextFactory.getApplicationContext();
@@ -146,7 +132,6 @@ public class ContainerTest {
         assertEquals(0, sizeOfMaps(singletonBeans, prototypeBeans));
         assertEquals(0, context.contextSize());
 
-        context.loadAll(Person.random(), PrototypePerson.random());
         assertEquals(2, sizeOfMaps(singletonBeans, prototypeBeans));
 
         context.clearContext();
@@ -180,7 +165,6 @@ public class ContainerTest {
         assertEquals(0, context.contextSize());
 
 
-        context.loadAll(new Address(), new Person(), PrototypePerson.random());
         assertEquals(3, sizeOfMaps(singletonBeans, prototypeBeans));
         assertEquals(3, context.contextSize());
 
@@ -205,7 +189,6 @@ public class ContainerTest {
         assertEquals(0, sizeOfMaps(singletonBeans, prototypeBeans));
         assertEquals(0, context.contextSize());
 
-        context.loadAll(new Address(), new Person(), PrototypePerson.random());
         assertTrue(sizeOfMaps(singletonBeans, prototypeBeans) > 0);
         assertEquals(0, context.contextSize());
     }

@@ -1,9 +1,8 @@
-package cdi.implementatinInjection;
+package cdi.implementation_injection;
 
 import lombok.ToString;
 import org.openCDI.ApplicationContext;
 import org.openCDI.annotations.Component;
-import org.openCDI.annotations.Use;
 
 @Component
 @ToString
@@ -15,7 +14,7 @@ public class UserController {
 
     private ApplicationContext context;
 
-    @Use(clazz = AnotherUserServiceIml.class)
+
     public UserService service;
 
     public User getUser() {

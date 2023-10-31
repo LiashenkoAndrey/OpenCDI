@@ -1,4 +1,4 @@
-package cdi.implementatinInjection;
+package cdi.implementation_injection;
 
 import org.openCDI.annotations.Component;
 

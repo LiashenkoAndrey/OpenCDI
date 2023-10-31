@@ -1,4 +1,4 @@
-package cdi.implementatinInjection;
+package cdi.implementation_injection;
 
 public interface UserService {
 

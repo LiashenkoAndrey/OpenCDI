@@ -4,7 +4,7 @@ import lombok.SneakyThrows;
 import org.openCDI.ApplicationContext;
 import org.openCDI.annotations.Component;
 import org.openCDI.annotations.Inject;
-import org.openCDI.annotations.Scope;
+import org.openCDI.annotations.Service;
 import org.openCDI.annotations.Use;
 import org.openCDI.exceptions.ComponentNotFoundException;
 import org.openCDI.exceptions.MultipleComponentsWithTheSameClassException;
@@ -27,15 +27,14 @@ import static org.openCDI.util.ApplicationContextUtils.validateComponent;
 public class ApplicationContextImpl implements ApplicationContext {
     private static final Logger logger = LoggerFactory.getLogger(ApplicationContextImpl.class);
     private final Map<String, Object> singletonBeans = new HashMap<>();
-    private final Map<String, Object> prototypeBeans = new HashMap<>();
 
     private final List<Object> impls = new ArrayList<>();
 
     /**
-     * injects dependencies for both singleton and prototype beans
+     * injects dependencies for beans
      */
     public void init() {
-        injectDependencies(prototypeBeans.values().toArray());
+        logger.info("Starting injection... " + singletonBeans );
         injectDependencies(singletonBeans.values().toArray());
         logger.info("Initialization successful");
     }
@@ -68,27 +67,24 @@ public class ApplicationContextImpl implements ApplicationContext {
         if (clazz.getInterfaces().length != 0) {
             impls.add(obj);
         }
-        Component ann = clazz.getAnnotation(Component.class);
-        String name = getName(clazz, ann.value());
-        putIntoContext(obj, name, ann.scope());
+
+        String name = getComponentName(clazz);
+        putIntoContext(obj, name);
     }
 
-    private void putIntoContext(Object o, String name, Scope scope) {
-        switch (scope) {
-            case PROTOTYPE -> prototypeBeans.put(name, o);
+    private void putIntoContext(Object o, String name) {
+        singletonBeans.put(name, o);
+    }
 
-            case SINGLETON -> singletonBeans.put(name, o);
+    private String getComponentName(Class<?> clazz) {
+        String value;
+        if (clazz.isAnnotationPresent(Component.class)) {
+            value = clazz.getAnnotation(Component.class).value();
+        } else {
+            value = clazz.getAnnotation(Service.class).value();
         }
+        return value.isEmpty() ? clazz.getSimpleName() : value;
     }
-
-    public void loadWithName(Object obj, String name) {
-        Class<?> clazz = obj.getClass();
-        validateComponent(clazz);
-
-        Component ann = clazz.getAnnotation(Component.class);
-        putIntoContext(obj, name, ann.scope());
-    }
-
 
     private String getName(Class<?> clazz, String val) {
         if (val.isEmpty()) {
@@ -96,6 +92,13 @@ public class ApplicationContextImpl implements ApplicationContext {
         } else return val;
     }
 
+    public void loadWithName(Object obj, String name) {
+        Class<?> clazz = obj.getClass();
+        validateComponent(clazz);
+
+        Component ann = clazz.getAnnotation(Component.class);
+        putIntoContext(obj, name);
+    }
 
 
     /**
@@ -116,10 +119,10 @@ public class ApplicationContextImpl implements ApplicationContext {
                 } else {
                     String val = field.getAnnotation(Inject.class).value();
                     if (val.isEmpty()) {
-                        Optional<Object> o =  findByName(field.getClass().getSimpleName());
+                        Optional<Object> o = findByName(field.getType().getSimpleName());
                         if (o.isPresent()) field.set(obj, o.get());
                     } else {
-                        Optional<Object> o =  findByName(val);
+                        Optional<Object> o = findByName(val);
                         if (o.isPresent()) field.set(obj, o.get());
                         field.set(obj, o);
                     }
@@ -129,8 +132,12 @@ public class ApplicationContextImpl implements ApplicationContext {
     }
 
 
+    /**
+     * Finds implementation of interface specified as dependency in component
+     * @param field dependency field
+     * @return implementation of interface
+     */
     private Object findImpl(Field field) {
-
         Class<?> type = field.getType();
 
         List<Object> implsList = impls.stream()
@@ -139,36 +146,50 @@ public class ApplicationContextImpl implements ApplicationContext {
                     return List.of(classes).contains(type);
                 }).toList();
 
-        int size = implsList.size();
-        if (size == 0) {
-            throw new NoImplementationException("There is no implementation for " + type + ". Please provide an implementation into context");
+        Object impl;
+        switch (implsList.size()) {
+            case 0 -> throw new NoImplementationException("There is no implementation for " + type +
+                    ". Please provide an implementation into context");
 
-        } else if (size == 1) {
-            return implsList.get(0);
+            case 1 -> impl = implsList.get(0);
 
-        } else {
-            Use annotation = field.getAnnotation(Use.class);
-            if (annotation == null) throw new MultipleImplementationException("There is more then one implementation of " + type + " class, impls: " + implsList.stream().map(Object::getClass).toList() + ". Please use org.open.cdi.annotations.Use annotation to choose the implementation");
+            default -> impl = getByImplementation(field, type, impls);
+        }
 
-            String useImpl = annotation.value();
-            Class<?> useClass = annotation.clazz();
-            if (!useImpl.isBlank()) {
-                Optional<Object> bean = findByName(useImpl);
-                if (bean.isPresent()) {
-                    return bean.get();
-                } else {
-                    throw new ComponentNotFoundException("Component with name: '" + useImpl + "' not found");
-                }
-            } else if (!useClass.equals(NullType.class)) {
-                Optional<Object> bean = findByClass(useClass);
-                if (bean.isPresent()) {
-                    return bean.get();
-                } else {
-                    throw new ComponentNotFoundException("Component with class name: '" + useClass.getName() + "' not found");
-                }
+        return impl;
+    }
+
+    private Object getByImplementation(Field field, Class<?> type, List<Object> implsList) {
+        Use annotation = field.getAnnotation(Use.class);
+        if (annotation == null) throw new MultipleImplementationException(String.format("""
+                There is more then one implementation of %s class, impls: %s.
+                Please use org.open.cdi.annotations.Use annotation to choose the implementation
+                """, type, implsList.stream().map(Object::getClass).toList())
+        );
+
+        String useImpl = annotation.value();
+        Class<?> useClass = annotation.clazz();
+        if (!useImpl.isBlank()) {
+            Optional<Object> bean = findByName(useImpl);
+            if (bean.isPresent()) {
+                return bean.get();
             } else {
-                throw new IllegalQualifierException("Qualifier: '" + useImpl + "' is illegal. Please provide component name or class as a parameter. For example @Use('ImplClass') or @Use(clazz = ImplClass.class) ");
+                throw new ComponentNotFoundException("Component with name: '" + useImpl + "' not found");
             }
+        } else if (!useClass.equals(NullType.class)) {
+            Optional<Object> bean = findByClass(useClass);
+            if (bean.isPresent()) {
+                return bean.get();
+            } else {
+                throw new ComponentNotFoundException("Component with class name: '" + useClass.getName() + "' not found");
+            }
+        } else {
+            throw new IllegalQualifierException(String.format("""
+                Qualifier: '%s' is illegal.
+                Please provide component name or class as a parameter.
+                For example @Use('ImplClass') or @Use(clazz = ImplClass.class)
+                    """, useImpl)
+            );
         }
     }
 
@@ -204,13 +225,12 @@ public class ApplicationContextImpl implements ApplicationContext {
     }
 
     public Optional<Object> findByName(String name) {
+
+        logger.info("find by name: " + name);
         ApplicationContextUtils.validateComponentName(name);
 
         if (singletonBeans.containsKey(name)) {
             return Optional.of(singletonBeans.get(name));
-
-        } else if (prototypeBeans.containsKey(name)) {
-            return Optional.of(prototypeBeans.get(name));
 
         } else {
             return Optional.empty();
@@ -239,13 +259,11 @@ public class ApplicationContextImpl implements ApplicationContext {
      */
     public void clearContext() {
         logger.info("Clear context!");
-        prototypeBeans.clear();
         singletonBeans.clear();
     }
 
     public Map<String, Object> getContext() {
-        Map<String, Object> map = new HashMap<>(singletonBeans.size() + prototypeBeans.size());
-        map.putAll(prototypeBeans);
+        Map<String, Object> map = new HashMap<>(singletonBeans.size());
         map.putAll(singletonBeans);
         return map;
     }
@@ -256,7 +274,7 @@ public class ApplicationContextImpl implements ApplicationContext {
      * @return size both singleton and prototype beans
      */
     public int contextSize() {
-        return singletonBeans.size() + prototypeBeans.size();
+        return singletonBeans.size();
     }
 
 }

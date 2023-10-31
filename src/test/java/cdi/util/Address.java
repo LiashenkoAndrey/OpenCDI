@@ -1,4 +1,4 @@
-package cdi;
+package cdi.util;
 
 import lombok.*;
 import org.openCDI.annotations.Component;

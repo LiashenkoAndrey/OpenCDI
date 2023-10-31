@@ -1,4 +1,4 @@
-package cdi;
+package cdi.applicationContextTest;
 
 import cdi.abstractClasses.UserDao;
 import org.junit.jupiter.api.Test;

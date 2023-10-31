@@ -11,4 +11,11 @@ public class ApplicationContextFactory {
         return context;
     }
 
+    public static ApplicationContext getApplicationContext(Class<?> clazz) {
+        ApplicationContext context = new ApplicationContextImpl();
+        context.loadFromPackages(clazz.getPackageName());
+        context.loadAll(context);
+        return context;
+    }
+
 }

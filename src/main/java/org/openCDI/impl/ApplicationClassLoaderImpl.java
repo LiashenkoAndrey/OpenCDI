@@ -2,6 +2,7 @@ package org.openCDI.impl;
 
 import lombok.SneakyThrows;
 import org.openCDI.annotations.Component;
+import org.openCDI.annotations.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +40,7 @@ public class ApplicationClassLoaderImpl extends ClassLoader {
 
     private static boolean isComponentOrInterface(Class<?> clazz) {
         if (clazz != null) {
-            return (clazz.getAnnotation(Component.class) != null || clazz.isInterface()) ;
+            return (clazz.getAnnotation(Component.class) != null || clazz.isInterface() || clazz.getAnnotation(Service.class) != null) ;
         } else return false;
     }
 

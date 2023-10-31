@@ -2,7 +2,9 @@ package org.openCDI.util;
 
 import org.openCDI.annotations.Component;
 import org.openCDI.annotations.Inject;
+import org.openCDI.annotations.Service;
 import org.openCDI.exceptions.validation.ClassIsAbstractException;
+import org.openCDI.exceptions.validation.MultipleAnnotationException;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -49,7 +51,7 @@ public class ApplicationContextUtils {
     }
 
     public static boolean isComponent(Class<?> clazz) {
-        return clazz.getDeclaredAnnotation(Component.class) != null;
+        return clazz.isAnnotationPresent(Component.class) || clazz.isAnnotationPresent(Service.class);
     }
 
     public static boolean isAbstract(Class<?> clazz) {
@@ -61,6 +63,8 @@ public class ApplicationContextUtils {
     public static void validateComponent(Class<?> clazz) {
         if (isAbstract(clazz)) throw new ClassIsAbstractException("Class "+ clazz.getName() + " is abstract");
         if (!isComponent(clazz)) throw new IllegalArgumentException("Class  "+ clazz.getName() +" is not component");
+        if (clazz.isAnnotationPresent(Component.class) && clazz.isAnnotationPresent(Service.class))
+            throw new MultipleAnnotationException("Class annotated with Component and Service annotations simultaneously");
     }
 
 }
